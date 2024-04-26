@@ -26,10 +26,37 @@ namespace AssetStudio
             {
                 if (m_Sprite.m_RD.texture.TryGet(out var m_Texture2D))
                 {
-                    return CutImage(m_Sprite, m_Texture2D, m_Sprite.m_RD.textureRect, m_Sprite.m_RD.textureRectOffset, m_Sprite.m_RD.downscaleMultiplier, m_Sprite.m_RD.settingsRaw);
+                    var image = CutImage(m_Sprite, m_Texture2D, m_Sprite.m_RD.textureRect, m_Sprite.m_RD.textureRectOffset, m_Sprite.m_RD.downscaleMultiplier, m_Sprite.m_RD.settingsRaw);
+
+                    if (m_Sprite.m_RD.alphaTexture.TryGet(out var m_AlphaTexture2D))
+                    {
+                        var alphaImage = CutImage(m_Sprite, m_AlphaTexture2D, m_Sprite.m_RD.textureRect, m_Sprite.m_RD.textureRectOffset, m_Sprite.m_RD.downscaleMultiplier, m_Sprite.m_RD.settingsRaw);
+                        return AlphaCompose(image, alphaImage);
+                    }
+                    else
+                    {
+                        return image;
+                    }
                 }
             }
             return null;
+        }
+
+        private static Image<Bgra32> AlphaCompose(Image<Bgra32> image, Image<Bgra32> alphaImage)
+        {
+            for (int i = 0; i < image.Size().Height; i++)
+            {
+                var row = image.GetPixelRowSpan(i);
+                var alphaRow = alphaImage.GetPixelRowSpan(i);
+
+                for (int j = 0; j < row.Length; j++)
+                {
+                    var alphaPixel = alphaRow[j];
+                    row[j].A = (byte) ((alphaPixel.B + alphaPixel.G + alphaPixel.R) / 3);
+                }
+            }
+
+            return image;
         }
 
         private static Image<Bgra32> CutImage(Sprite m_Sprite, Texture2D m_Texture2D, Rectf textureRect, Vector2 textureRectOffset, float downscaleMultiplier, SpriteSettings settingsRaw)
